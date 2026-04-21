@@ -39,7 +39,8 @@ function ItineraryContent() {
     if (!data) { setError("No itinerary data found."); return; }
     try {
       const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
-      const decoded = JSON.parse(decodeURIComponent(atob(normalized)));
+      const padded = normalized + "==".slice(0, (4 - (normalized.length % 4)) % 4);
+      const decoded = JSON.parse(decodeURIComponent(atob(padded)));
       setItinerary(decoded);
       setStops(decoded.stops);
     } catch {
