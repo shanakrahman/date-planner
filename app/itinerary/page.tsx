@@ -40,15 +40,22 @@ function ItineraryContent() {
     if (!data) { setError("No itinerary data found."); return; }
     try {
       let json: string | null = LZString.decompressFromEncodedURIComponent(data);
+      let wasLegacy = false;
       if (!json) {
         // Fall back to old base64 format for previously shared links
         const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
         const padded = normalized + "==".slice(0, (4 - (normalized.length % 4)) % 4);
         json = decodeURIComponent(atob(padded));
+        wasLegacy = true;
       }
       const decoded = JSON.parse(json);
       setItinerary(decoded);
       setStops(decoded.stops);
+      // Silently upgrade legacy URLs to compressed format
+      if (wasLegacy) {
+        const encoded = LZString.compressToEncodedURIComponent(json);
+        router.replace(`/itinerary?data=${encoded}`, { scroll: false });
+      }
     } catch {
       setError("Could not load itinerary. The link may be corrupted.");
     }
