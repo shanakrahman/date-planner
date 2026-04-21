@@ -39,9 +39,14 @@ function ItineraryContent() {
     const data = searchParams.get("data");
     if (!data) { setError("No itinerary data found."); return; }
     try {
-      const decompressed = LZString.decompressFromEncodedURIComponent(data);
-      if (!decompressed) throw new Error("decompression failed");
-      const decoded = JSON.parse(decompressed);
+      let json: string | null = LZString.decompressFromEncodedURIComponent(data);
+      if (!json) {
+        // Fall back to old base64 format for previously shared links
+        const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
+        const padded = normalized + "==".slice(0, (4 - (normalized.length % 4)) % 4);
+        json = decodeURIComponent(atob(padded));
+      }
+      const decoded = JSON.parse(json);
       setItinerary(decoded);
       setStops(decoded.stops);
     } catch {
