@@ -43,6 +43,23 @@ Keep all existing stops unless asked to change them. Preserve all existing field
     try {
       const cleaned = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       updated = JSON.parse(cleaned);
+
+      // Normalize must_try to new { text, image } format
+      updated.stops = updated.stops.map((stop) => {
+        if (!Array.isArray(stop.must_try)) {
+          return {
+            ...stop,
+            must_try: stop.must_try ? [{ text: stop.must_try as unknown as string, image: stop.image_query || "food" }] : [],
+          };
+        }
+        if (stop.must_try.length > 0 && typeof stop.must_try[0] === "string") {
+          return {
+            ...stop,
+            must_try: (stop.must_try as unknown as string[]).map((text) => ({ text, image: stop.image_query || "food" })),
+          };
+        }
+        return stop;
+      });
     } catch {
       return NextResponse.json({ error: "Failed to parse AI response. Try again." }, { status: 500 });
     }

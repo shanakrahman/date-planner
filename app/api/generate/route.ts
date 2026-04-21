@@ -76,6 +76,26 @@ Generate a realistic, geo-optimized itinerary. Any venues explicitly mentioned b
     try {
       const cleaned = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       itinerary = JSON.parse(cleaned);
+
+      // Normalize must_try to new { text, image } format
+      itinerary.stops = itinerary.stops.map((stop) => {
+        if (!Array.isArray(stop.must_try)) {
+          // Old format: must_try is a string, convert to new format
+          return {
+            ...stop,
+            must_try: stop.must_try ? [{ text: stop.must_try as unknown as string, image: stop.image_query || "food" }] : [],
+          };
+        }
+        if (stop.must_try.length > 0 && typeof stop.must_try[0] === "string") {
+          // Format: array of strings, convert to objects
+          return {
+            ...stop,
+            must_try: (stop.must_try as unknown as string[]).map((text) => ({ text, image: stop.image_query || "food" })),
+          };
+        }
+        // Already in new format
+        return stop;
+      });
     } catch {
       console.error("Failed to parse Claude response:", rawText);
       return NextResponse.json(
