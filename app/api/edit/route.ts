@@ -25,7 +25,7 @@ Keep all existing stops unless asked to change them. Preserve all existing field
   "arrival_time": "HH:MM AM/PM",
   "duration_minutes": number,
   "description": "what makes this place special",
-  "must_try": [{"text": "string", "image": "string"}] — Each item has text description and 2-4 word image search query.
+  "must_try": [{"text": "string", "image": "string"}] — For restaurants/bars/cafes: 3 items with specific 2-4 word image queries. For galleries/parks: 1 item. Each item has text description and image search query.
   "image_query": "2-4 word food photo search term",
   "tips": "insider tip",
   "lat": number,
