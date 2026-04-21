@@ -3,7 +3,7 @@
 import { useState } from "react";
 import LZString from "lz-string";
 import { useRouter } from "next/navigation";
-import { MapPin, Sparkles, Clock } from "lucide-react";
+import { MapPin, Sparkles, Clock, UtensilsCrossed, Palette } from "lucide-react";
 
 const DURATION_OPTIONS = [
   { value: "2", label: "2 hours" },
