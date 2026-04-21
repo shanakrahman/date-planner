@@ -68,7 +68,7 @@ export default function Home() {
       }
 
       const itinerary = await res.json();
-      const encoded = btoa(encodeURIComponent(JSON.stringify(itinerary)));
+      const encoded = btoa(encodeURIComponent(JSON.stringify(itinerary))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
       router.push(`/itinerary?data=${encoded}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");

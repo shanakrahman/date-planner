@@ -38,7 +38,8 @@ function ItineraryContent() {
     const data = searchParams.get("data");
     if (!data) { setError("No itinerary data found."); return; }
     try {
-      const decoded = JSON.parse(decodeURIComponent(atob(data)));
+      const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = JSON.parse(decodeURIComponent(atob(normalized)));
       setItinerary(decoded);
       setStops(decoded.stops);
     } catch {
@@ -47,7 +48,7 @@ function ItineraryContent() {
   }, [searchParams]);
 
   const updateUrl = (updated: Itinerary) => {
-    const encoded = btoa(encodeURIComponent(JSON.stringify(updated)));
+    const encoded = btoa(encodeURIComponent(JSON.stringify(updated))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
     router.replace(`/itinerary?data=${encoded}`, { scroll: false });
   };
 
