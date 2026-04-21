@@ -75,26 +75,29 @@ Generate a realistic, geo-optimized itinerary. Any venues explicitly mentioned b
     let itinerary: Itinerary;
     try {
       const cleaned = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      itinerary = JSON.parse(cleaned);
+      const parsed = JSON.parse(cleaned);
+      itinerary = parsed as Itinerary;
 
       // Normalize must_try to new { text, image } format
-      itinerary.stops = itinerary.stops.map((stop) => {
-        if (!Array.isArray(stop.must_try)) {
-          // Old format: must_try is a string, convert to new format
-          return {
-            ...stop,
-            must_try: stop.must_try ? [{ text: stop.must_try as unknown as string, image: stop.image_query || "food" }] : [],
-          };
+      itinerary.stops = itinerary.stops.map((stop: any) => {
+        let normalizedMustTry: { text: string; image: string }[] = [];
+
+        if (typeof stop.must_try === "string") {
+          // Old format: single string
+          normalizedMustTry = [{ text: stop.must_try, image: stop.image_query || "food" }];
+        } else if (Array.isArray(stop.must_try)) {
+          if (stop.must_try.length === 0) {
+            normalizedMustTry = [];
+          } else if (typeof stop.must_try[0] === "string") {
+            // Array of strings
+            normalizedMustTry = stop.must_try.map((text: string) => ({ text, image: stop.image_query || "food" }));
+          } else if (typeof stop.must_try[0] === "object") {
+            // Already in new format
+            normalizedMustTry = stop.must_try;
+          }
         }
-        if (stop.must_try.length > 0 && typeof stop.must_try[0] === "string") {
-          // Format: array of strings, convert to objects
-          return {
-            ...stop,
-            must_try: (stop.must_try as unknown as string[]).map((text) => ({ text, image: stop.image_query || "food" })),
-          };
-        }
-        // Already in new format
-        return stop;
+
+        return { ...stop, must_try: normalizedMustTry };
       });
     } catch {
       console.error("Failed to parse Claude response:", rawText);
