@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LZString from "lz-string";
 import { useRouter } from "next/navigation";
 import { MapPin, Sparkles, Clock, UtensilsCrossed, Palette, Music, ChevronDown } from "lucide-react";
 
@@ -68,7 +69,7 @@ export default function Home() {
       }
 
       const itinerary = await res.json();
-      const encoded = btoa(encodeURIComponent(JSON.stringify(itinerary))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+      const encoded = LZString.compressToEncodedURIComponent(JSON.stringify(itinerary));
       router.push(`/itinerary?data=${encoded}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");

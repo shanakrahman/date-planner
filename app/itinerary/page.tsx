@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
+import LZString from "lz-string";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { ArrowLeft, Share2, Check, MapPin, Clock, Sparkles, Pencil, Send, X } from "lucide-react";
@@ -38,9 +39,9 @@ function ItineraryContent() {
     const data = searchParams.get("data");
     if (!data) { setError("No itinerary data found."); return; }
     try {
-      const normalized = data.replace(/-/g, "+").replace(/_/g, "/");
-      const padded = normalized + "==".slice(0, (4 - (normalized.length % 4)) % 4);
-      const decoded = JSON.parse(decodeURIComponent(atob(padded)));
+      const decompressed = LZString.decompressFromEncodedURIComponent(data);
+      if (!decompressed) throw new Error("decompression failed");
+      const decoded = JSON.parse(decompressed);
       setItinerary(decoded);
       setStops(decoded.stops);
     } catch {
@@ -49,7 +50,7 @@ function ItineraryContent() {
   }, [searchParams]);
 
   const updateUrl = (updated: Itinerary) => {
-    const encoded = btoa(encodeURIComponent(JSON.stringify(updated))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    const encoded = LZString.compressToEncodedURIComponent(JSON.stringify(updated));
     router.replace(`/itinerary?data=${encoded}`, { scroll: false });
   };
 
