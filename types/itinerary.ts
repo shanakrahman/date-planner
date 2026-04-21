@@ -7,7 +7,7 @@ export interface Stop {
   duration_minutes: number;
   description: string;
   tips: string;
-  must_try: string;
+  must_try: string[];
   image_query: string;
   lat?: number;
   lng?: number;

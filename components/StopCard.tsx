@@ -81,22 +81,29 @@ export default function StopCard({ stop, index, isLast, onDragStart, onDragOver,
 
         <p className="text-stone-700 text-sm leading-relaxed mb-3">{stop.description}</p>
 
-        {stop.must_try && (
+        {stop.must_try && stop.must_try.length > 0 && (
           <div className="bg-white rounded-xl mb-3 border border-orange-100 overflow-hidden">
             {stop.image_query && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={`https://loremflickr.com/600/280/${stop.image_query.trim().replace(/\s+/g, ",")}`}
-                alt={stop.must_try}
+                alt="must try item"
                 className="w-full h-40 object-cover"
                 loading="lazy"
               />
             )}
             <div className="flex items-start gap-2 px-3 py-2.5">
               <Star className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5 fill-orange-400" />
-              <div>
-                <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-0.5">Must try</p>
-                <p className="text-sm text-stone-700 leading-relaxed">{stop.must_try}</p>
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-2">Must try</p>
+                <ul className="space-y-1.5">
+                  {stop.must_try.map((item, idx) => (
+                    <li key={idx} className="text-sm text-stone-700 leading-relaxed flex gap-2">
+                      <span className="text-orange-400">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>

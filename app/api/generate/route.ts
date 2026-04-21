@@ -22,7 +22,7 @@ You MUST respond with ONLY valid JSON — no markdown, no explanation, no code f
       "arrival_time": "string — e.g. '10:00 AM'",
       "duration_minutes": number,
       "description": "string — what this place is and why it's special",
-      "must_try": "string — the single most iconic thing to order or experience here, be specific (e.g. 'The egg tarts — flaky pastry shell with silky custard, order 2-3 per person')",
+      "must_try": "string[] — For restaurants and bars: 3 specific, popular menu items to try. For cafes, galleries, parks, shops, attractions: 1 key experience. Be specific and enticing (e.g. 'The egg tarts — flaky pastry shell with silky custard')",
       "image_query": "string — 2-4 word Unsplash search query for a photo of the must-try dish or experience (e.g. 'chinese egg tarts', 'pork bun steamed', 'matcha latte cafe')",
       "tips": "string — insider tip for visiting",
       "lat": number — precise latitude coordinate for this exact venue,
