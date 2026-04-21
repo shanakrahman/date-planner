@@ -40,7 +40,7 @@ export default function StopCard({ stop, index, isLast, onDragStart, onDragOver,
   const emoji = TYPE_EMOJI[stop.type] || "📍";
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name + " " + stop.address)}`;
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}&travelmode=walking`;
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(stop.name + " " + stop.address)}&travelmode=walking`;
 
   const handlePrevCarousel = () => {
     setCarouselIndex((prev) => (prev === 0 ? stop.must_try.length - 1 : prev - 1));
