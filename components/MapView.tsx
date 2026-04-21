@@ -31,19 +31,17 @@ interface MapViewProps {
 
 async function fetchWalkingRoute(waypoints: [number, number][]): Promise<[number, number][] | null> {
   try {
-    const coords = waypoints.map(([lat, lng]) => `${lng},${lat}`).join(";");
-    const res = await fetch(
-      `https://router.project-osrm.org/route/v1/foot/${coords}?overview=full&geometries=geojson`,
-      { signal: AbortSignal.timeout(5000) }
-    );
+    const res = await fetch("/api/route-path", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ waypoints }),
+      signal: AbortSignal.timeout(8000),
+    });
     const data = await res.json();
-    if (data.code === "Ok" && data.routes?.[0]?.geometry?.coordinates) {
-      return data.routes[0].geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng]);
-    }
+    return data.path ?? null;
   } catch {
-    // OSRM unavailable — fall back to straight lines
+    return null;
   }
-  return null;
 }
 
 export default function MapView({ stops }: MapViewProps) {
