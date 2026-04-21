@@ -1,4 +1,5 @@
-import { Clock, MapPin, Lightbulb, Star, GripVertical } from "lucide-react";
+import { Clock, MapPin, Lightbulb, Star, GripVertical, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
 import type { Stop } from "@/types/itinerary";
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
@@ -34,10 +35,19 @@ interface StopCardProps {
 }
 
 export default function StopCard({ stop, index, isLast, onDragStart, onDragOver, onDrop, isDragging }: StopCardProps) {
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const colors = TYPE_COLORS[stop.type] || TYPE_COLORS.other;
   const emoji = TYPE_EMOJI[stop.type] || "📍";
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name + " " + stop.address)}`;
+
+  const handlePrevCarousel = () => {
+    setCarouselIndex((prev) => (prev === 0 ? stop.must_try.length - 1 : prev - 1));
+  };
+
+  const handleNextCarousel = () => {
+    setCarouselIndex((prev) => (prev === stop.must_try.length - 1 ? 0 : prev + 1));
+  };
 
   return (
     <div
@@ -83,27 +93,60 @@ export default function StopCard({ stop, index, isLast, onDragStart, onDragOver,
 
         {stop.must_try && stop.must_try.length > 0 && (
           <div className="bg-white rounded-xl mb-3 border border-orange-100 overflow-hidden">
-            {stop.image_query && (
-              // eslint-disable-next-line @next/next/no-img-element
+            {/* Carousel */}
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`https://loremflickr.com/600/280/${stop.image_query.trim().replace(/\s+/g, ",")}`}
-                alt="must try item"
+                src={`https://loremflickr.com/600/280/${stop.must_try[carouselIndex].image.trim().replace(/\s+/g, ",")}`}
+                alt={stop.must_try[carouselIndex].text}
                 className="w-full h-40 object-cover"
                 loading="lazy"
               />
-            )}
+              {/* Carousel controls */}
+              {stop.must_try.length > 1 && (
+                <div className="absolute inset-0 flex items-center justify-between px-2">
+                  <button
+                    onClick={handlePrevCarousel}
+                    className="bg-black/40 hover:bg-black/60 text-white p-1.5 rounded-full transition-colors"
+                    aria-label="Previous"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleNextCarousel}
+                    className="bg-black/40 hover:bg-black/60 text-white p-1.5 rounded-full transition-colors"
+                    aria-label="Next"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+              {/* Indicator dots */}
+              {stop.must_try.length > 1 && (
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                  {stop.must_try.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCarouselIndex(idx)}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        idx === carouselIndex ? "bg-white w-6" : "bg-white/50"
+                      }`}
+                      aria-label={`Go to item ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Content */}
             <div className="flex items-start gap-2 px-3 py-2.5">
               <Star className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5 fill-orange-400" />
               <div className="flex-1">
-                <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-2">Must try</p>
-                <ul className="space-y-1.5">
-                  {stop.must_try.map((item, idx) => (
-                    <li key={idx} className="text-sm text-stone-700 leading-relaxed flex gap-2">
-                      <span className="text-orange-400">•</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
+                <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">Must try</p>
+                <p className="text-sm text-stone-700 leading-relaxed">{stop.must_try[carouselIndex].text}</p>
+                {stop.must_try.length > 1 && (
+                  <p className="text-xs text-stone-400 mt-1.5">{carouselIndex + 1} of {stop.must_try.length}</p>
+                )}
               </div>
             </div>
           </div>

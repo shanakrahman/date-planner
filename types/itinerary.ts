@@ -1,3 +1,8 @@
+export interface MustTryItem {
+  text: string;
+  image: string;
+}
+
 export interface Stop {
   id: string;
   name: string;
@@ -7,8 +12,8 @@ export interface Stop {
   duration_minutes: number;
   description: string;
   tips: string;
-  must_try: string[];
-  image_query: string;
+  must_try: MustTryItem[];
+  image_query?: string;
   lat?: number;
   lng?: number;
 }
