@@ -24,6 +24,7 @@ function ItineraryContent() {
   const [stops, setStops] = useState(itinerary?.stops ?? []);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isShortening, setIsShortening] = useState(false);
 
   // Edit panel
   const [editOpen, setEditOpen] = useState(false);
@@ -67,11 +68,23 @@ function ItineraryContent() {
   };
 
   const handleShare = async () => {
+    setIsShortening(true);
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      const res = await fetch("/api/shorten", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: window.location.href }),
+      });
+      const data = await res.json();
+      const urlToCopy = data.short ?? window.location.href;
+      await navigator.clipboard.writeText(urlToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-    } catch { /* clipboard unavailable */ }
+    } catch {
+      try { await navigator.clipboard.writeText(window.location.href); } catch { /* unavailable */ }
+    } finally {
+      setIsShortening(false);
+    }
   };
 
   // Drag and drop handlers
@@ -183,9 +196,10 @@ function ItineraryContent() {
             </button>
             <button
               onClick={handleShare}
-              className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-3 py-1.5 rounded-xl transition-colors"
+              disabled={isShortening}
+              className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-70 text-white text-sm font-semibold px-3 py-1.5 rounded-xl transition-colors"
             >
-              {copied ? <><Check className="w-4 h-4" />Copied!</> : <><Share2 className="w-4 h-4" />Share</>}
+              {copied ? <><Check className="w-4 h-4" />Copied!</> : isShortening ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Shortening...</> : <><Share2 className="w-4 h-4" />Share</>}
             </button>
           </div>
         </div>
