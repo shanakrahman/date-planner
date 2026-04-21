@@ -169,37 +169,24 @@ export default function StopCard({ stop, index, isLast, onDragStart, onDragOver,
             href={directionsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 bg-white border border-stone-200 hover:border-stone-400 text-stone-700 hover:text-stone-900 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-sm"
+            className="inline-flex items-center justify-center bg-white border border-stone-200 hover:border-stone-400 text-blue-600 hover:text-blue-700 p-2 rounded-xl transition-all shadow-sm"
+            aria-label="Get directions"
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#4285F4"/>
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="url(#maps-gradient)"/>
-              <defs>
-                <linearGradient id="maps-gradient" x1="5" y1="2" x2="19" y2="22" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#4285F4"/>
-                  <stop offset="100%" stopColor="#34A853"/>
-                </linearGradient>
-              </defs>
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 4v7h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M20 14V4H4v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            Directions
           </a>
           <a
             href={googleMapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 bg-white border border-stone-200 hover:border-stone-400 text-stone-700 hover:text-stone-900 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-sm"
+            className="inline-flex items-center justify-center bg-white border border-stone-200 hover:border-stone-400 text-blue-600 hover:text-blue-700 p-2 rounded-xl transition-all shadow-sm"
+            aria-label="Open in Google Maps"
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#4285F4"/>
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="url(#maps-gradient)"/>
-              <defs>
-                <linearGradient id="maps-gradient" x1="5" y1="2" x2="19" y2="22" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#4285F4"/>
-                  <stop offset="100%" stopColor="#34A853"/>
-                </linearGradient>
-              </defs>
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
             </svg>
-            Open in Google Maps
           </a>
         </div>
       </div>
