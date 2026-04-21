@@ -3,18 +3,7 @@
 import { useState } from "react";
 import LZString from "lz-string";
 import { useRouter } from "next/navigation";
-import { MapPin, Sparkles, Clock, UtensilsCrossed, Palette, Music, ChevronDown } from "lucide-react";
-
-const INTEREST_OPTIONS = [
-  { id: "food", label: "Food & Dining", icon: "🍜" },
-  { id: "art", label: "Art & Culture", icon: "🎨" },
-  { id: "coffee", label: "Cafes & Coffee", icon: "☕" },
-  { id: "bars", label: "Bars & Cocktails", icon: "🍸" },
-  { id: "shopping", label: "Shopping", icon: "🛍️" },
-  { id: "nature", label: "Parks & Nature", icon: "🌿" },
-  { id: "history", label: "History & Architecture", icon: "🏛️" },
-  { id: "nightlife", label: "Nightlife", icon: "🌙" },
-];
+import { MapPin, Sparkles, Clock } from "lucide-react";
 
 const DURATION_OPTIONS = [
   { value: "2", label: "2 hours" },
@@ -28,17 +17,8 @@ export default function Home() {
   const [freeText, setFreeText] = useState("");
   const [location, setLocation] = useState("");
   const [duration, setDuration] = useState("4");
-  const [interests, setInterests] = useState<string[]>([]);
-  const [dietary, setDietary] = useState("");
-  const [budget, setBudget] = useState("moderate");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const toggleInterest = (id: string) => {
-    setInterests((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,9 +37,9 @@ export default function Home() {
           freeText,
           location,
           duration: parseInt(duration),
-          interests,
-          dietary,
-          budget,
+          interests: [],
+          dietary: "",
+          budget: "moderate",
         }),
       });
 
@@ -165,63 +145,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Interests */}
-          <div>
-            <label className="block text-sm font-semibold text-stone-700 mb-2">
-              What are you into? <span className="text-stone-400 font-normal">(pick all that apply)</span>
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {INTEREST_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => toggleInterest(opt.id)}
-                  className={`rounded-xl py-2.5 px-3 text-sm font-medium border transition-all text-left flex items-center gap-2 ${
-                    interests.includes(opt.id)
-                      ? "bg-orange-50 text-orange-700 border-orange-400 shadow-sm"
-                      : "bg-white text-stone-600 border-stone-200 hover:border-orange-300"
-                  }`}
-                >
-                  <span>{opt.icon}</span>
-                  <span className="truncate">{opt.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Dietary & Budget row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-2">
-                Dietary needs
-              </label>
-              <input
-                type="text"
-                value={dietary}
-                onChange={(e) => setDietary(e.target.value)}
-                placeholder="e.g. vegetarian, gluten-free..."
-                className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent shadow-sm text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-2">
-                Budget
-              </label>
-              <div className="relative">
-                <select
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  className="w-full appearance-none rounded-2xl border border-stone-200 bg-white px-4 py-3 text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent shadow-sm text-sm pr-8"
-                >
-                  <option value="budget">Budget ($)</option>
-                  <option value="moderate">Moderate ($$)</option>
-                  <option value="upscale">Upscale ($$$)</option>
-                  <option value="luxury">Luxury ($$$$)</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
-              </div>
-            </div>
-          </div>
 
           {error && (
             <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">
