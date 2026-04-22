@@ -36,6 +36,7 @@ interface StopCardProps {
 
 export default function StopCard({ stop, index, isLast, onDragStart, onDragOver, onDrop, isDragging }: StopCardProps) {
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [showTip, setShowTip] = useState(false);
   const colors = TYPE_COLORS[stop.type] || TYPE_COLORS.other;
   const emoji = TYPE_EMOJI[stop.type] || "📍";
 
@@ -154,9 +155,20 @@ export default function StopCard({ stop, index, isLast, onDragStart, onDragOver,
         )}
 
         {stop.tips && (
-          <div className="flex items-start gap-2 bg-white/60 rounded-xl px-3 py-2.5 mb-3">
-            <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-stone-600 leading-relaxed">{stop.tips}</p>
+          <div className="mb-3">
+            <button
+              onClick={() => setShowTip(!showTip)}
+              className="flex items-center gap-2 text-xs font-semibold text-amber-700 hover:text-amber-800 transition-colors"
+            >
+              <Lightbulb className="w-4 h-4 text-amber-500" />
+              {showTip ? "Hide tip" : "Show tip"}
+            </button>
+            {showTip && (
+              <div className="flex items-start gap-2 bg-white/60 rounded-xl px-3 py-2.5 mt-2">
+                <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-stone-600 leading-relaxed">{stop.tips}</p>
+              </div>
+            )}
           </div>
         )}
 
