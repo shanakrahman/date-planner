@@ -160,11 +160,7 @@ export default function StopCard({ stop, index, isLast, onDragStart, onDragOver,
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-xs text-stone-400 flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            {stop.address}
-          </p>
+        <div className="flex items-center gap-2">
           <a
             href={directionsUrl}
             target="_blank"
