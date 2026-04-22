@@ -1,4 +1,4 @@
-import { Clock, MapPin, Lightbulb, Star, GripVertical, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, MapPin, Lightbulb, Star, GripVertical, ChevronLeft, ChevronRight, Navigation } from "lucide-react";
 import { useState } from "react";
 import type { Stop } from "@/types/itinerary";
 
@@ -172,10 +172,7 @@ export default function StopCard({ stop, index, isLast, onDragStart, onDragOver,
             className="inline-flex items-center justify-center bg-white border border-stone-200 hover:border-stone-400 text-blue-600 hover:text-blue-700 p-2 rounded-xl transition-all shadow-sm"
             aria-label="Get directions"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 4v7h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M20 14V4H4v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <Navigation className="w-5 h-5" />
           </a>
           <a
             href={googleMapsUrl}
