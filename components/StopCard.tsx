@@ -169,21 +169,19 @@ export default function StopCard({ stop, index, isLast, onDragStart, onDragOver,
             href={directionsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center bg-white border border-stone-200 hover:border-stone-400 text-blue-600 hover:text-blue-700 p-2 rounded-xl transition-all shadow-sm"
-            aria-label="Get directions"
+            className="inline-flex items-center gap-1.5 bg-white border border-stone-200 hover:border-stone-400 text-blue-600 hover:text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-sm"
           >
-            <Navigation className="w-5 h-5" />
+            <Navigation className="w-4 h-4" />
+            Directions
           </a>
           <a
             href={googleMapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center bg-white border border-stone-200 hover:border-stone-400 text-blue-600 hover:text-blue-700 p-2 rounded-xl transition-all shadow-sm"
-            aria-label="Open in Google Maps"
+            className="inline-flex items-center gap-1.5 bg-white border border-stone-200 hover:border-stone-400 text-blue-600 hover:text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-sm"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-            </svg>
+            <MapPin className="w-4 h-4" />
+            Open in Google Maps
           </a>
         </div>
       </div>
