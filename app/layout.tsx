@@ -8,10 +8,19 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Day Adventure Planner",
+  title: "Roam - Day Adventure Planner",
   description: "AI-powered itinerary builder for unforgettable day adventures",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Roam",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
-    title: "Day Adventure Planner",
+    title: "Roam - Day Adventure Planner",
     description: "Turn your preferences into a perfect day out — restaurants, galleries, bars, and more.",
     type: "website",
   },
