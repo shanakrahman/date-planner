@@ -6,13 +6,14 @@ export async function POST(req: NextRequest) {
     if (!url) return NextResponse.json({ error: "Missing url" }, { status: 400 });
 
     const res = await fetch(
-      `https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`,
+      `https://is.gd/?url=${encodeURIComponent(url)}&format=json`,
       { signal: AbortSignal.timeout(5000) }
     );
 
-    if (!res.ok) throw new Error("TinyURL failed");
-    const short = await res.text();
-    if (!short.startsWith("https://")) throw new Error("Invalid response");
+    if (!res.ok) throw new Error("URL shortening failed");
+    const data = await res.json() as { shorturl?: string };
+    if (!data.shorturl) throw new Error("Invalid response");
+    const short = data.shorturl;
 
     return NextResponse.json({ short });
   } catch {
