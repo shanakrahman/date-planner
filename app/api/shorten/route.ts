@@ -13,9 +13,8 @@ export async function POST(req: NextRequest) {
     if (!res.ok) throw new Error("URL shortening failed");
     const data = await res.json() as { shorturl?: string };
     if (!data.shorturl) throw new Error("Invalid response");
-    const short = data.shorturl;
 
-    return NextResponse.json({ short });
+    return NextResponse.json({ short: data.shorturl });
   } catch {
     return NextResponse.json({ error: "Could not shorten URL" }, { status: 500 });
   }
