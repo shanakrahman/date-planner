@@ -29,6 +29,7 @@ function ItineraryContent() {
   const [isPreparingShare, setIsPreparingShare] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   const shareRef = useRef<HTMLDivElement>(null);
 
@@ -154,7 +155,11 @@ function ItineraryContent() {
       setImageCopied(true);
       setTimeout(() => setImageCopied(false), 2500);
     } catch (err) {
-      if (err instanceof Error && err.name !== "AbortError") console.error(err);
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error(err);
+        setImageFailed(true);
+        setTimeout(() => setImageFailed(false), 3000);
+      }
     } finally {
       setIsCopyingImage(false);
     }
@@ -327,7 +332,9 @@ function ItineraryContent() {
                         ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating...</>
                         : imageCopied
                         ? <><Check className="w-4 h-4" />Image copied!</>
-                        : <><Image className="w-4 h-4" />Copy image to clipboard</>}
+                        : imageFailed
+                        ? <>Try again — image failed</>
+                        : <><Image className="w-4 h-4" />Copy image</>}
                     </button>
                   </div>
                 </div>

@@ -14,6 +14,18 @@ const TYPE_COLOR: Record<string, string> = {
   other: "#78716c",
 };
 
+// Light badge backgrounds — no 8-char hex (Satori doesn't support #RRGGBBAA)
+const TYPE_BG: Record<string, string> = {
+  restaurant: "#fed7aa",
+  cafe: "#fde68a",
+  bar: "#e9d5ff",
+  gallery: "#bae6fd",
+  park: "#bbf7d0",
+  shop: "#fbcfe8",
+  attraction: "#fef08a",
+  other: "#e7e5e4",
+};
+
 const TYPE_EMOJI: Record<string, string> = {
   restaurant: "🍽️",
   cafe: "☕",
@@ -231,7 +243,7 @@ export async function GET(req: NextRequest) {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    backgroundColor: color + "22",
+                    backgroundColor: TYPE_BG[stop.type] ?? TYPE_BG.other,
                     color: color,
                     fontSize: "16px",
                     fontWeight: 700,
