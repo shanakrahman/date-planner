@@ -28,9 +28,7 @@ function ItineraryContent() {
   const [shareId, setShareId] = useState<string | null>(null);
   const [isPreparingShare, setIsPreparingShare] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [imageShared, setImageShared] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
-  const [isSharingImage, setIsSharingImage] = useState(false);
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   const shareRef = useRef<HTMLDivElement>(null);
 
@@ -109,34 +107,6 @@ function ItineraryContent() {
     setTimeout(() => setLinkCopied(false), 2500);
   };
 
-  const handleShareImage = async () => {
-    if (!shareId || !itinerary) return;
-    setIsSharingImage(true);
-    try {
-      const imgRes = await fetch(`/api/og?id=${shareId}`);
-      if (!imgRes.ok) throw new Error("Image generation failed");
-      const blob = await imgRes.blob();
-      const file = new File([blob], "roam-itinerary.png", { type: "image/png" });
-
-      // Touch device = mobile native share sheet (image only). Desktop = download.
-      const isTouch = navigator.maxTouchPoints > 1;
-      if (isTouch && typeof navigator.share === "function") {
-        await navigator.share({ files: [file], title: itinerary.title });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = "roam-itinerary.png"; a.click();
-        URL.revokeObjectURL(url);
-        setImageShared(true);
-        setTimeout(() => setImageShared(false), 2500);
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name !== "AbortError") console.error(err);
-    } finally {
-      setIsSharingImage(false);
-    }
-  };
-
   const handleCopyImage = async () => {
     if (!shareId) return;
     setIsCopyingImage(true);
@@ -144,23 +114,22 @@ function ItineraryContent() {
       const imgRes = await fetch(`/api/og?id=${shareId}`);
       if (!imgRes.ok) throw new Error("Image generation failed");
       const blob = await imgRes.blob();
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+
+      // Try clipboard first; fall back to download if not supported
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      } catch {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "roam-itinerary.png";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
       setImageCopied(true);
       setTimeout(() => setImageCopied(false), 2500);
     } catch (err) {
-      // Clipboard write not supported — fall back to download
-      if (err instanceof Error && err.name !== "AbortError") {
-        try {
-          const imgRes = await fetch(`/api/og?id=${shareId}`);
-          const blob = await imgRes.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url; a.download = "roam-itinerary.png"; a.click();
-          URL.revokeObjectURL(url);
-          setImageCopied(true);
-          setTimeout(() => setImageCopied(false), 2500);
-        } catch { /* silent */ }
-      }
+      if (err instanceof Error && err.name !== "AbortError") console.error(err);
     } finally {
       setIsCopyingImage(false);
     }
@@ -325,23 +294,12 @@ function ItineraryContent() {
                       {linkCopied ? "Link copied!" : "Copy link"}
                     </button>
                     <button
-                      onClick={handleShareImage}
-                      disabled={!shareId || isSharingImage}
-                      className="flex items-center gap-2 w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
-                    >
-                      {isSharingImage
-                        ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Preparing...</>
-                        : imageShared
-                        ? <><Check className="w-4 h-4" />Image downloaded!</>
-                        : <><Image className="w-4 h-4" />{navigator?.maxTouchPoints > 1 ? "Share image" : "Download image"}</>}
-                    </button>
-                    <button
                       onClick={handleCopyImage}
                       disabled={!shareId || isCopyingImage}
-                      className="flex items-center gap-2 w-full bg-stone-800 hover:bg-stone-900 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+                      className="flex items-center gap-2 w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
                     >
                       {isCopyingImage
-                        ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Copying...</>
+                        ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating...</>
                         : imageCopied
                         ? <><Check className="w-4 h-4" />Image copied!</>
                         : <><Image className="w-4 h-4" />Copy image</>}

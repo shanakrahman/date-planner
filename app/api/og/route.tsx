@@ -1,18 +1,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 
-export const runtime = "nodejs";
-
-const TYPE_EMOJI: Record<string, string> = {
-  restaurant: "🍽️",
-  cafe: "☕",
-  bar: "🍸",
-  gallery: "🎨",
-  park: "🌿",
-  shop: "🛍️",
-  attraction: "⭐",
-  other: "📍",
-};
+// Default Node.js runtime — next/og works on both runtimes
 
 const TYPE_COLOR: Record<string, string> = {
   restaurant: "#f97316",
@@ -25,10 +14,20 @@ const TYPE_COLOR: Record<string, string> = {
   other: "#78716c",
 };
 
+const TYPE_EMOJI: Record<string, string> = {
+  restaurant: "🍽️",
+  cafe: "☕",
+  bar: "🍸",
+  gallery: "🎨",
+  park: "🌿",
+  shop: "🛍️",
+  attraction: "⭐",
+  other: "📍",
+};
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-
   if (!id) return new Response("Missing id", { status: 400 });
 
   let itinerary: {
@@ -41,19 +40,22 @@ export async function GET(req: NextRequest) {
       type: string;
       arrival_time: string;
       duration_minutes: number;
-      description?: string;
     }>;
   };
 
   try {
-    const res = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`);
-    if (!res.ok) throw new Error("Not found");
+    const res = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) throw new Error(`jsonblob ${res.status}`);
     itinerary = await res.json();
-  } catch {
+  } catch (e) {
+    console.error("[og] fetch error:", e);
     return new Response("Itinerary not found", { status: 404 });
   }
 
-  const stops = (itinerary.stops ?? []).slice(0, 5);
+  const stops = (itinerary.stops ?? []).slice(0, 4);
 
   return new ImageResponse(
     (
@@ -63,49 +65,42 @@ export async function GET(req: NextRequest) {
           flexDirection: "column",
           width: "100%",
           height: "100%",
-          background: "linear-gradient(160deg, #fff7ed 0%, #fef9f0 60%, #fdf4e7 100%)",
-          fontFamily: "system-ui, -apple-system, sans-serif",
+          backgroundColor: "#fff7ed",
         }}
       >
-        {/* Header */}
+        {/* Header — flat color, no gradient (Satori limitation) */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
-            padding: "36px 56px",
+            backgroundColor: "#f97316",
+            padding: "40px 60px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
             <div
               style={{
-                fontSize: "42px",
-                fontWeight: "900",
+                fontSize: "52px",
+                fontWeight: 900,
                 color: "white",
-                letterSpacing: "-1.5px",
+                letterSpacing: "-2px",
               }}
             >
               Roam
             </div>
-            <div
-              style={{
-                width: "1px",
-                height: "32px",
-                backgroundColor: "rgba(255,255,255,0.4)",
-              }}
-            />
-            <div style={{ fontSize: "22px", color: "rgba(255,255,255,0.9)", fontWeight: "500" }}>
+            <div style={{ fontSize: "20px", color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>
               Day Adventure
             </div>
           </div>
           <div
             style={{
-              backgroundColor: "rgba(255,255,255,0.2)",
+              display: "flex",
+              backgroundColor: "rgba(255,255,255,0.22)",
               color: "white",
-              fontSize: "18px",
-              fontWeight: "600",
-              padding: "8px 20px",
+              fontSize: "20px",
+              fontWeight: 700,
+              padding: "10px 24px",
               borderRadius: "100px",
             }}
           >
@@ -114,42 +109,46 @@ export async function GET(req: NextRequest) {
         </div>
 
         {/* Title block */}
-        <div style={{ display: "flex", flexDirection: "column", padding: "44px 56px 32px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            padding: "44px 60px 28px",
+          }}
+        >
           <div
             style={{
               fontSize: "18px",
               color: "#f97316",
-              fontWeight: "700",
-              textTransform: "uppercase",
-              letterSpacing: "3px",
+              fontWeight: 700,
+              letterSpacing: "2px",
               marginBottom: "14px",
             }}
           >
-            📍 {itinerary.neighborhood}
+            📍 {itinerary.neighborhood?.toUpperCase() ?? ""}
           </div>
           <div
             style={{
-              fontSize: "54px",
-              fontWeight: "900",
+              fontSize: "56px",
+              fontWeight: 900,
               color: "#1c1917",
-              lineHeight: "1.05",
-              letterSpacing: "-1.5px",
-              marginBottom: "16px",
+              lineHeight: 1.0,
+              letterSpacing: "-2px",
+              marginBottom: "18px",
             }}
           >
-            {itinerary.title}
+            {itinerary.title ?? ""}
           </div>
           {itinerary.summary && (
             <div
               style={{
-                fontSize: "20px",
+                fontSize: "22px",
                 color: "#78716c",
-                lineHeight: "1.5",
-                maxWidth: "880px",
+                lineHeight: 1.5,
               }}
             >
-              {itinerary.summary.length > 120
-                ? itinerary.summary.slice(0, 120) + "…"
+              {itinerary.summary.length > 110
+                ? itinerary.summary.slice(0, 110) + "…"
                 : itinerary.summary}
             </div>
           )}
@@ -158,9 +157,10 @@ export async function GET(req: NextRequest) {
         {/* Divider */}
         <div
           style={{
+            display: "flex",
             height: "1px",
             backgroundColor: "#e7e5e4",
-            margin: "0 56px 32px",
+            margin: "0 60px 28px",
           }}
         />
 
@@ -169,8 +169,7 @@ export async function GET(req: NextRequest) {
           style={{
             display: "flex",
             flexDirection: "column",
-            padding: "0 56px",
-            gap: "16px",
+            padding: "0 60px",
             flex: 1,
           }}
         >
@@ -186,61 +185,57 @@ export async function GET(req: NextRequest) {
                   backgroundColor: "white",
                   borderRadius: "20px",
                   padding: "22px 28px",
-                  gap: "24px",
-                  boxShadow: "0 2px 16px rgba(0,0,0,0.05)",
-                  border: "1px solid rgba(0,0,0,0.04)",
+                  marginBottom: "14px",
+                  border: "1.5px solid #e7e5e4",
                 }}
               >
                 {/* Number bubble */}
                 <div
                   style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     width: "52px",
                     height: "52px",
                     borderRadius: "50%",
                     backgroundColor: color,
                     color: "white",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
                     fontSize: "22px",
-                    fontWeight: "800",
+                    fontWeight: 800,
                     flexShrink: 0,
+                    marginRight: "22px",
                   }}
                 >
                   {i + 1}
                 </div>
 
-                {/* Stop info */}
+                {/* Info */}
                 <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
                   <div
                     style={{
                       fontSize: "26px",
-                      fontWeight: "800",
+                      fontWeight: 800,
                       color: "#1c1917",
                       marginBottom: "4px",
                     }}
                   >
                     {emoji} {stop.name}
                   </div>
-                  <div style={{ fontSize: "17px", color: "#a8a29e", fontWeight: "500" }}>
+                  <div style={{ fontSize: "17px", color: "#a8a29e", fontWeight: 500 }}>
                     {stop.arrival_time} · {stop.duration_minutes} min
-                    {stop.description
-                      ? " · " +
-                        (stop.description.length > 60
-                          ? stop.description.slice(0, 60) + "…"
-                          : stop.description)
-                      : ""}
                   </div>
                 </div>
 
-                {/* Time badge */}
+                {/* Type badge */}
                 <div
                   style={{
-                    backgroundColor: `${color}18`,
+                    display: "flex",
+                    alignItems: "center",
+                    backgroundColor: color + "22",
                     color: color,
                     fontSize: "16px",
-                    fontWeight: "700",
-                    padding: "6px 14px",
+                    fontWeight: 700,
+                    padding: "6px 16px",
                     borderRadius: "100px",
                     flexShrink: 0,
                   }}
@@ -261,8 +256,7 @@ export async function GET(req: NextRequest) {
             padding: "28px",
             color: "#d6d3d1",
             fontSize: "16px",
-            fontWeight: "500",
-            letterSpacing: "0.5px",
+            fontWeight: 500,
           }}
         >
           date-planner-roan.vercel.app · Plan your own adventure
