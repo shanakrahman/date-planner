@@ -5,7 +5,7 @@ import LZString from "lz-string";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { ArrowLeft, Share2, Check, MapPin, Clock, Sparkles, Pencil, Send, X, Link2, Image } from "lucide-react";
-import type { Itinerary } from "@/types/itinerary";
+import type { Itinerary, Stop } from "@/types/itinerary";
 import StopCard from "@/components/StopCard";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
@@ -48,7 +48,40 @@ function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h
   ctx.closePath();
 }
 
-function buildItineraryCanvas(itinerary: Itinerary, stops: Itinerary["stops"]): HTMLCanvasElement {
+function tileCoords(lat: number, lng: number, zoom: number) {
+  const n = Math.pow(2, zoom);
+  const x = Math.floor(((lng + 180) / 360) * n);
+  const lr = (lat * Math.PI) / 180;
+  const y = Math.floor(((1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2) * n);
+  return { x, y };
+}
+
+function latLngToPixel(lat: number, lng: number, zoom: number, oTX: number, oTY: number) {
+  const n = Math.pow(2, zoom);
+  const px = ((lng + 180) / 360) * n * 256 - oTX * 256;
+  const lr = (lat * Math.PI) / 180;
+  const py = ((1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2) * n * 256 - oTY * 256;
+  return { px, py };
+}
+
+function loadTile(z: number, x: number, y: number): Promise<HTMLImageElement | null> {
+  return new Promise(resolve => {
+    const img = document.createElement("img");
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+  });
+}
+
+function firstSentence(text: string): string {
+  if (!text) return "";
+  const dot = text.indexOf(". ");
+  const s = dot > 0 && dot < 90 ? text.slice(0, dot + 1) : text.slice(0, 90);
+  return s.length < text.length && !s.endsWith(".") ? s + "…" : s;
+}
+
+async function buildItineraryCanvas(itinerary: Itinerary, stops: Itinerary["stops"]): Promise<HTMLCanvasElement> {
   const W = 1080, H = 1350;
   const canvas = document.createElement("canvas");
   canvas.width = W; canvas.height = H;
@@ -59,89 +92,132 @@ function buildItineraryCanvas(itinerary: Itinerary, stops: Itinerary["stops"]): 
   ctx.fillStyle = "#fff7ed"; ctx.fillRect(0, 0, W, H);
 
   // Header bar
-  ctx.fillStyle = "#f97316"; ctx.fillRect(0, 0, W, 180);
-
-  // Roam wordmark
+  ctx.fillStyle = "#f97316"; ctx.fillRect(0, 0, W, 165);
   ctx.fillStyle = "white";
-  ctx.font = "bold 64px system-ui, -apple-system, sans-serif";
-  ctx.fillText("Roam", 60, 108);
-  ctx.font = "500 30px system-ui, -apple-system, sans-serif";
+  ctx.font = "bold 62px system-ui, -apple-system, sans-serif";
+  ctx.fillText("Roam", 60, 104);
+  ctx.font = "500 27px system-ui, -apple-system, sans-serif";
   ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.fillText("Day Adventure", 60, 154);
+  ctx.fillText("Day Adventure", 60, 146);
 
-  // Duration badge (right side of header)
+  // Duration badge
   const badge = `${itinerary.total_duration_hours ?? "?"}h · ${Math.min(stops.length, 4)} stops`;
-  ctx.font = "bold 24px system-ui, -apple-system, sans-serif";
+  ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
   const btw = ctx.measureText(badge).width;
-  const bx = W - btw - 100, by = 66, bw = btw + 40, bh = 48;
-  ctx.fillStyle = "rgba(255,255,255,0.22)"; rrect(ctx, bx, by, bw, bh, 24); ctx.fill();
-  ctx.fillStyle = "white"; ctx.fillText(badge, bx + 20, by + 32);
+  const bx = W - btw - 96, by = 62, bw = btw + 36, bh = 44;
+  ctx.fillStyle = "rgba(255,255,255,0.22)"; rrect(ctx, bx, by, bw, bh, 22); ctx.fill();
+  ctx.fillStyle = "white"; ctx.fillText(badge, bx + 18, by + 29);
 
-  // Neighborhood
-  let y = 228;
+  // Neighborhood + title + summary
+  let y = 190;
   ctx.fillStyle = "#f97316";
-  ctx.font = "bold 24px system-ui, -apple-system, sans-serif";
+  ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
   ctx.fillText(`📍 ${(itinerary.neighborhood ?? "").toUpperCase()}`, 60, y);
-  y += 56;
+  y += 48;
 
-  // Title
   ctx.fillStyle = "#1c1917";
-  ctx.font = "bold 64px system-ui, -apple-system, sans-serif";
+  ctx.font = "bold 60px system-ui, -apple-system, sans-serif";
   for (const line of wrapText(ctx, itinerary.title ?? "", W - 120).slice(0, 2)) {
-    ctx.fillText(line, 60, y); y += 76;
+    ctx.fillText(line, 60, y); y += 70;
   }
-  y += 8;
+  y += 6;
 
-  // Summary
   if (itinerary.summary) {
     ctx.fillStyle = "#78716c";
-    ctx.font = "26px system-ui, -apple-system, sans-serif";
-    for (const line of wrapText(ctx, itinerary.summary, W - 120).slice(0, 2)) {
-      ctx.fillText(line, 60, y); y += 38;
-    }
-    y += 6;
+    ctx.font = "24px system-ui, -apple-system, sans-serif";
+    ctx.fillText(wrapText(ctx, itinerary.summary, W - 120)[0] ?? "", 60, y);
+    y += 34;
+  }
+  y += 16;
+
+  // ── Map strip (OSM tiles) ──────────────────────────────────────────────────
+  const geocoded = stops.filter(s => s.lat != null && s.lng != null) as (Stop & { lat: number; lng: number })[];
+  const mapH = 188, mapW = W - 120;
+
+  if (geocoded.length > 0) {
+    try {
+      const zoom = 14;
+      const lats = geocoded.map(s => s.lat);
+      const lngs = geocoded.map(s => s.lng);
+      const cLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+      const cLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+      const { x: cx, y: cy } = tileCoords(cLat, cLng, zoom);
+      const TILE = 256;
+      const off = document.createElement("canvas");
+      off.width = TILE * 3; off.height = TILE * 3;
+      const oc = off.getContext("2d")!;
+      await Promise.all(
+        [-1, 0, 1].flatMap(dy =>
+          [-1, 0, 1].map(async dx => {
+            const img = await loadTile(zoom, cx + dx, cy + dy);
+            if (img) oc.drawImage(img, (dx + 1) * TILE, (dy + 1) * TILE, TILE, TILE);
+          })
+        )
+      );
+      const oTX = cx - 1, oTY = cy - 1;
+      const { px: cpx, py: cpy } = latLngToPixel(cLat, cLng, zoom, oTX, oTY);
+      const cropX = Math.max(0, cpx - mapW / 2);
+      const cropY = Math.max(0, cpy - mapH / 2);
+
+      ctx.save();
+      rrect(ctx, 60, y, mapW, mapH, 16); ctx.clip();
+      ctx.drawImage(off, cropX, cropY, mapW, mapH, 60, y, mapW, mapH);
+
+      for (let i = 0; i < geocoded.length; i++) {
+        const s = geocoded[i];
+        const { px, py } = latLngToPixel(s.lat, s.lng, zoom, oTX, oTY);
+        const mx = 60 + (px - cropX), my = y + (py - cropY);
+        if (mx < 66 || mx > 60 + mapW - 6 || my < y + 6 || my > y + mapH - 6) continue;
+        const col = STOP_COLORS[s.type] ?? STOP_COLORS.other;
+        ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(mx, my, 18, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(mx, my, 14, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "white"; ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
+        ctx.textAlign = "center"; ctx.fillText(String(i + 1), mx, my + 5); ctx.textAlign = "left";
+      }
+      ctx.restore();
+      ctx.strokeStyle = "#e7e5e4"; ctx.lineWidth = 2;
+      rrect(ctx, 60, y, mapW, mapH, 16); ctx.stroke();
+    } catch { /* tiles failed — skip map silently */ }
+    y += mapH + 18;
   }
 
   // Divider
-  y += 18;
   ctx.strokeStyle = "#e7e5e4"; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(W - 60, y); ctx.stroke();
-  y += 26;
+  y += 22;
 
-  // Stop cards
-  const cardH = 112;
+  // Stop cards (name + time + first sentence of description)
+  const cardH = 132;
   for (let i = 0; i < stops.slice(0, 4).length; i++) {
     const stop = stops[i];
     const color = STOP_COLORS[stop.type] ?? STOP_COLORS.other;
 
-    // Card background + border
-    ctx.fillStyle = "white"; rrect(ctx, 60, y, W - 120, cardH, 20); ctx.fill();
-    ctx.strokeStyle = "#e7e5e4"; ctx.lineWidth = 2;
-    rrect(ctx, 60, y, W - 120, cardH, 20); ctx.stroke();
+    ctx.fillStyle = "white"; rrect(ctx, 60, y, W - 120, cardH, 18); ctx.fill();
+    ctx.strokeStyle = "#e7e5e4"; ctx.lineWidth = 2; rrect(ctx, 60, y, W - 120, cardH, 18); ctx.stroke();
 
-    // Numbered circle
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(116, y + cardH / 2, 30, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "white"; ctx.font = "bold 26px system-ui, -apple-system, sans-serif";
-    ctx.textAlign = "center"; ctx.fillText(String(i + 1), 116, y + cardH / 2 + 9);
-    ctx.textAlign = "left";
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(114, y + cardH / 2, 27, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "white"; ctx.font = "bold 23px system-ui, -apple-system, sans-serif";
+    ctx.textAlign = "center"; ctx.fillText(String(i + 1), 114, y + cardH / 2 + 8); ctx.textAlign = "left";
 
-    // Stop name
-    ctx.fillStyle = "#1c1917"; ctx.font = "bold 30px system-ui, -apple-system, sans-serif";
-    const name = stop.name.length > 36 ? stop.name.slice(0, 36) + "…" : stop.name;
-    ctx.fillText(name, 168, y + 46);
+    ctx.fillStyle = "#1c1917"; ctx.font = "bold 27px system-ui, -apple-system, sans-serif";
+    const name = stop.name.length > 38 ? stop.name.slice(0, 38) + "…" : stop.name;
+    ctx.fillText(name, 160, y + 36);
 
-    // Time + duration
-    ctx.fillStyle = "#a8a29e"; ctx.font = "22px system-ui, -apple-system, sans-serif";
-    ctx.fillText(`${stop.arrival_time} · ${stop.duration_minutes} min`, 168, y + 84);
+    ctx.fillStyle = "#a8a29e"; ctx.font = "19px system-ui, -apple-system, sans-serif";
+    ctx.fillText(`${stop.arrival_time} · ${stop.duration_minutes} min`, 160, y + 62);
 
-    y += cardH + 16;
+    if (stop.description) {
+      ctx.fillStyle = "#78716c"; ctx.font = "17px system-ui, -apple-system, sans-serif";
+      ctx.fillText(wrapText(ctx, firstSentence(stop.description), W - 120 - 106)[0] ?? "", 160, y + 92);
+    }
+
+    y += cardH + 13;
   }
 
   // Footer
-  ctx.fillStyle = "#d6d3d1"; ctx.font = "20px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#d6d3d1"; ctx.font = "18px system-ui, -apple-system, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("date-planner-roan.vercel.app · Plan your own adventure", W / 2, H - 36);
+  ctx.fillText("date-planner-roan.vercel.app · Plan your own adventure", W / 2, H - 30);
 
   return canvas;
 }
@@ -220,10 +296,11 @@ function ItineraryContent() {
   const handleOpenShare = async () => {
     setShareOpen(true);
 
-    // Generate preview immediately using canvas (no server needed)
+    // Generate preview using canvas (async — fetches map tiles)
     if (itinerary && !previewDataUrl) {
-      const canvas = buildItineraryCanvas(itinerary, stops);
-      setPreviewDataUrl(canvas.toDataURL("image/png"));
+      buildItineraryCanvas(itinerary, stops).then(canvas => {
+        setPreviewDataUrl(canvas.toDataURL("image/png"));
+      });
     }
 
     if (shareId) return; // already saved this session
@@ -251,17 +328,22 @@ function ItineraryContent() {
     if (!itinerary) return;
     setIsCopyingImage(true);
     try {
-      // Build canvas synchronously so we can hand the blob Promise to ClipboardItem
-      // before any await — this preserves the browser's gesture context for clipboard access.
-      const canvas = buildItineraryCanvas(itinerary, stops);
-      const blobPromise = new Promise<Blob>((res, rej) =>
-        canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png")
+      // Start the canvas build immediately (returns a Promise). Pass that Promise chain
+      // directly into ClipboardItem — ClipboardItem is created synchronously inside the
+      // click handler so the browser still grants clipboard permission.
+      const blobPromise = buildItineraryCanvas(itinerary, stops).then(
+        canvas => new Promise<Blob>((res, rej) =>
+          canvas.toBlob(b => b ? res(b) : rej(new Error("toBlob failed")), "image/png")
+        )
       );
 
       const isTouch = navigator.maxTouchPoints > 1;
       if (isTouch && typeof navigator.share === "function") {
-        // Mobile: native share sheet (image only — no URL so it shows as an actual image)
-        const blob = await blobPromise;
+        // Mobile: build separately so native share sheet gets the file
+        const mCanvas = await buildItineraryCanvas(itinerary, stops);
+        const blob = await new Promise<Blob>((res, rej) =>
+          mCanvas.toBlob(b => b ? res(b) : rej(new Error("toBlob failed")), "image/png")
+        );
         const file = new File([blob], "roam-itinerary.png", { type: "image/png" });
         await navigator.share({ files: [file], title: itinerary.title ?? "Roam itinerary" });
       } else {
