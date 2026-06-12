@@ -17,6 +17,137 @@ const MapView = dynamic(() => import("@/components/MapView"), {
   ),
 });
 
+// ─── Canvas image generation (client-side, no server required) ───────────────
+
+const STOP_COLORS: Record<string, string> = {
+  restaurant: "#f97316", cafe: "#d97706", bar: "#9333ea",
+  gallery: "#0284c7", park: "#16a34a", shop: "#db2777",
+  attraction: "#ca8a04", other: "#78716c",
+};
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = word; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function buildItineraryCanvas(itinerary: Itinerary, stops: Itinerary["stops"]): HTMLCanvasElement {
+  const W = 1080, H = 1350;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+
+  // Background
+  ctx.fillStyle = "#fff7ed"; ctx.fillRect(0, 0, W, H);
+
+  // Header bar
+  ctx.fillStyle = "#f97316"; ctx.fillRect(0, 0, W, 180);
+
+  // Roam wordmark
+  ctx.fillStyle = "white";
+  ctx.font = "bold 64px system-ui, -apple-system, sans-serif";
+  ctx.fillText("Roam", 60, 108);
+  ctx.font = "500 30px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillText("Day Adventure", 60, 154);
+
+  // Duration badge (right side of header)
+  const badge = `${itinerary.total_duration_hours ?? "?"}h · ${Math.min(stops.length, 4)} stops`;
+  ctx.font = "bold 24px system-ui, -apple-system, sans-serif";
+  const btw = ctx.measureText(badge).width;
+  const bx = W - btw - 100, by = 66, bw = btw + 40, bh = 48;
+  ctx.fillStyle = "rgba(255,255,255,0.22)"; rrect(ctx, bx, by, bw, bh, 24); ctx.fill();
+  ctx.fillStyle = "white"; ctx.fillText(badge, bx + 20, by + 32);
+
+  // Neighborhood
+  let y = 228;
+  ctx.fillStyle = "#f97316";
+  ctx.font = "bold 24px system-ui, -apple-system, sans-serif";
+  ctx.fillText(`📍 ${(itinerary.neighborhood ?? "").toUpperCase()}`, 60, y);
+  y += 56;
+
+  // Title
+  ctx.fillStyle = "#1c1917";
+  ctx.font = "bold 64px system-ui, -apple-system, sans-serif";
+  for (const line of wrapText(ctx, itinerary.title ?? "", W - 120).slice(0, 2)) {
+    ctx.fillText(line, 60, y); y += 76;
+  }
+  y += 8;
+
+  // Summary
+  if (itinerary.summary) {
+    ctx.fillStyle = "#78716c";
+    ctx.font = "26px system-ui, -apple-system, sans-serif";
+    for (const line of wrapText(ctx, itinerary.summary, W - 120).slice(0, 2)) {
+      ctx.fillText(line, 60, y); y += 38;
+    }
+    y += 6;
+  }
+
+  // Divider
+  y += 18;
+  ctx.strokeStyle = "#e7e5e4"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(W - 60, y); ctx.stroke();
+  y += 26;
+
+  // Stop cards
+  const cardH = 112;
+  for (let i = 0; i < stops.slice(0, 4).length; i++) {
+    const stop = stops[i];
+    const color = STOP_COLORS[stop.type] ?? STOP_COLORS.other;
+
+    // Card background + border
+    ctx.fillStyle = "white"; rrect(ctx, 60, y, W - 120, cardH, 20); ctx.fill();
+    ctx.strokeStyle = "#e7e5e4"; ctx.lineWidth = 2;
+    rrect(ctx, 60, y, W - 120, cardH, 20); ctx.stroke();
+
+    // Numbered circle
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(116, y + cardH / 2, 30, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "white"; ctx.font = "bold 26px system-ui, -apple-system, sans-serif";
+    ctx.textAlign = "center"; ctx.fillText(String(i + 1), 116, y + cardH / 2 + 9);
+    ctx.textAlign = "left";
+
+    // Stop name
+    ctx.fillStyle = "#1c1917"; ctx.font = "bold 30px system-ui, -apple-system, sans-serif";
+    const name = stop.name.length > 36 ? stop.name.slice(0, 36) + "…" : stop.name;
+    ctx.fillText(name, 168, y + 46);
+
+    // Time + duration
+    ctx.fillStyle = "#a8a29e"; ctx.font = "22px system-ui, -apple-system, sans-serif";
+    ctx.fillText(`${stop.arrival_time} · ${stop.duration_minutes} min`, 168, y + 84);
+
+    y += cardH + 16;
+  }
+
+  // Footer
+  ctx.fillStyle = "#d6d3d1"; ctx.font = "20px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("date-planner-roan.vercel.app · Plan your own adventure", W / 2, H - 36);
+
+  return canvas;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function ItineraryContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -27,6 +158,7 @@ function ItineraryContent() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareId, setShareId] = useState<string | null>(null);
   const [isPreparingShare, setIsPreparingShare] = useState(false);
+  const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
@@ -87,6 +219,13 @@ function ItineraryContent() {
 
   const handleOpenShare = async () => {
     setShareOpen(true);
+
+    // Generate preview immediately using canvas (no server needed)
+    if (itinerary && !previewDataUrl) {
+      const canvas = buildItineraryCanvas(itinerary, stops);
+      setPreviewDataUrl(canvas.toDataURL("image/png"));
+    }
+
     if (shareId) return; // already saved this session
     setIsPreparingShare(true);
     try {
@@ -97,7 +236,7 @@ function ItineraryContent() {
       });
       const data = await res.json();
       if (data.id) setShareId(data.id);
-    } catch { /* show error state */ }
+    } catch { /* non-critical — share link just won't work */ }
     finally { setIsPreparingShare(false); }
   };
 
@@ -109,46 +248,40 @@ function ItineraryContent() {
   };
 
   const handleCopyImage = async () => {
-    if (!shareId) return;
+    if (!itinerary) return;
     setIsCopyingImage(true);
     try {
-      const isTouch = navigator.maxTouchPoints > 1;
+      // Build canvas synchronously so we can hand the blob Promise to ClipboardItem
+      // before any await — this preserves the browser's gesture context for clipboard access.
+      const canvas = buildItineraryCanvas(itinerary, stops);
+      const blobPromise = new Promise<Blob>((res, rej) =>
+        canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png")
+      );
 
+      const isTouch = navigator.maxTouchPoints > 1;
       if (isTouch && typeof navigator.share === "function") {
-        // Mobile: native share sheet is the most reliable way to get the image into WhatsApp/iMessage
-        const imgRes = await fetch(`/api/og?id=${shareId}`);
-        if (!imgRes.ok) throw new Error("Image generation failed");
-        const blob = await imgRes.blob();
+        // Mobile: native share sheet (image only — no URL so it shows as an actual image)
+        const blob = await blobPromise;
         const file = new File([blob], "roam-itinerary.png", { type: "image/png" });
-        await navigator.share({ files: [file], title: itinerary?.title ?? "Roam itinerary" });
+        await navigator.share({ files: [file], title: itinerary.title ?? "Roam itinerary" });
       } else {
-        // Desktop: pass the fetch Promise directly into ClipboardItem so the browser's
-        // gesture-based clipboard permission is claimed synchronously, then falls back to download.
+        // Desktop: try clipboard first, fall back to download
         let copied = false;
         if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
           try {
-            await navigator.clipboard.write([
-              new ClipboardItem({
-                "image/png": fetch(`/api/og?id=${shareId}`).then((r) => {
-                  if (!r.ok) throw new Error("og failed");
-                  return r.blob();
-                }),
-              }),
-            ]);
+            // Pass the Promise directly — ClipboardItem is created synchronously
+            // within the click gesture so the browser grants clipboard permission.
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": blobPromise })]);
             copied = true;
           } catch (e) {
-            console.warn("Clipboard write failed, falling back to download:", e);
+            console.warn("Clipboard write failed, downloading instead:", e);
           }
         }
         if (!copied) {
-          const imgRes = await fetch(`/api/og?id=${shareId}`);
-          if (!imgRes.ok) throw new Error("Image generation failed");
-          const blob = await imgRes.blob();
+          const blob = await blobPromise;
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
-          a.href = url;
-          a.download = "roam-itinerary.png";
-          a.click();
+          a.href = url; a.download = "roam-itinerary.png"; a.click();
           URL.revokeObjectURL(url);
         }
       }
@@ -293,22 +426,14 @@ function ItineraryContent() {
                     </button>
                   </div>
 
-                  {/* Image preview */}
+                  {/* Image preview — rendered client-side from canvas */}
                   <div className="rounded-xl overflow-hidden mb-3 bg-stone-100 border border-stone-100" style={{ aspectRatio: "4/5" }}>
-                    {isPreparingShare ? (
+                    {previewDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewDataUrl} alt="Itinerary preview" className="w-full h-full object-cover" />
+                    ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <div className="w-6 h-6 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-                      </div>
-                    ) : shareId ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={`/api/og?id=${shareId}`}
-                        alt="Itinerary preview"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-stone-400 text-sm">
-                        Could not load preview
                       </div>
                     )}
                   </div>
