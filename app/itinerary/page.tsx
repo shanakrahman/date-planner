@@ -116,28 +116,22 @@ function ItineraryContent() {
       const blob = await imgRes.blob();
       const file = new File([blob], "roam-itinerary.png", { type: "image/png" });
 
-      // Only use native share sheet on actual mobile devices
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile && navigator.canShare?.({ files: [file] })) {
-        // Mobile: native share sheet → send directly to iMessage, WhatsApp, etc.
+      // Touch device = mobile share sheet. Everything else = download file.
+      const isTouch = navigator.maxTouchPoints > 1;
+      if (isTouch && typeof navigator.share === "function") {
         await navigator.share({
           files: [file],
           title: itinerary.title,
           url: `${window.location.origin}/i/${shareId}`,
         });
       } else {
-        // Desktop: copy PNG to clipboard so user can paste into any app
-        try {
-          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-          setImageCopied(true);
-          setTimeout(() => setImageCopied(false), 2500);
-        } catch {
-          // Last resort: download the file
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url; a.download = "roam-itinerary.png"; a.click();
-          URL.revokeObjectURL(url);
-        }
+        // Desktop: download the PNG — most reliable cross-browser
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "roam-itinerary.png"; a.click();
+        URL.revokeObjectURL(url);
+        setImageCopied(true);
+        setTimeout(() => setImageCopied(false), 2500);
       }
     } catch (err) {
       if (err instanceof Error && err.name !== "AbortError") console.error(err);
@@ -313,7 +307,7 @@ function ItineraryContent() {
                         ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Preparing...</>
                         : imageCopied
                         ? <><Check className="w-4 h-4" />Image copied!</>
-                        : <><Image className="w-4 h-4" />Copy image of itinerary</>}
+                        : <><Image className="w-4 h-4" />Download image of itinerary</>}
                     </button>
                   </div>
                 </div>
