@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import LZString from "lz-string";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { ArrowLeft, Share2, Check, MapPin, Clock, Sparkles, Pencil, Send, X } from "lucide-react";
+import { ArrowLeft, Share2, Check, MapPin, Clock, Sparkles, Pencil, Send, X, ImageDown } from "lucide-react";
 import type { Itinerary } from "@/types/itinerary";
 import StopCard from "@/components/StopCard";
 
@@ -25,6 +25,7 @@ function ItineraryContent() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [isShortening, setIsShortening] = useState(false);
+  const [isSharingImage, setIsSharingImage] = useState(false);
 
   // Edit panel
   const [editOpen, setEditOpen] = useState(false);
@@ -85,6 +86,52 @@ function ItineraryContent() {
       try { await navigator.clipboard.writeText(window.location.href); } catch { /* unavailable */ }
     } finally {
       setIsShortening(false);
+    }
+  };
+
+  const handleShareImage = async () => {
+    if (!itinerary) return;
+    setIsSharingImage(true);
+    try {
+      // Save itinerary to get a stable ID for the OG image
+      const saveRes = await fetch("/api/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...itinerary, stops }),
+      });
+      const saveData = await saveRes.json();
+      if (!saveData.id) throw new Error("Could not save");
+
+      // Fetch the generated image
+      const imgRes = await fetch(`/api/og?id=${saveData.id}`);
+      if (!imgRes.ok) throw new Error("Image generation failed");
+      const blob = await imgRes.blob();
+      const file = new File([blob], "roam-itinerary.png", { type: "image/png" });
+      const shareUrl = `${window.location.origin}/i/${saveData.id}`;
+
+      // Try native share (mobile) first, fall back to download
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: itinerary.title,
+          text: `Check out this day plan: ${itinerary.title}`,
+          url: shareUrl,
+        });
+      } else {
+        // Desktop fallback: download the image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "roam-itinerary.png";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error("Share image failed:", err);
+      }
+    } finally {
+      setIsSharingImage(false);
     }
   };
 
@@ -196,11 +243,20 @@ function ItineraryContent() {
               Edit plan
             </button>
             <button
+              onClick={handleShareImage}
+              disabled={isSharingImage}
+              className="flex items-center gap-1.5 bg-white border border-stone-200 hover:border-stone-400 disabled:opacity-70 text-stone-700 text-sm font-semibold px-3 py-1.5 rounded-xl transition-all"
+            >
+              {isSharingImage
+                ? <><div className="w-4 h-4 border-2 border-stone-300 border-t-stone-600 rounded-full animate-spin" />Generating...</>
+                : <><ImageDown className="w-4 h-4" />Share Image</>}
+            </button>
+            <button
               onClick={handleShare}
               disabled={isShortening}
               className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-70 text-white text-sm font-semibold px-3 py-1.5 rounded-xl transition-colors"
             >
-              {copied ? <><Check className="w-4 h-4" />Copied!</> : isShortening ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</> : <><Share2 className="w-4 h-4" />Share</>}
+              {copied ? <><Check className="w-4 h-4" />Copied!</> : isShortening ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</> : <><Share2 className="w-4 h-4" />Share Link</>}
             </button>
           </div>
         </div>
