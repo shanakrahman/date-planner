@@ -122,7 +122,6 @@ function ItineraryContent() {
         await navigator.share({
           files: [file],
           title: itinerary.title,
-          url: `${window.location.origin}/i/${shareId}`,
         });
       } else {
         // Desktop: download the PNG — most reliable cross-browser
