@@ -70,14 +70,15 @@ function ItineraryContent() {
   const handleShare = async () => {
     setIsShortening(true);
     try {
-      const res = await fetch("/api/shorten", {
+      const res = await fetch("/api/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: window.location.href }),
+        body: JSON.stringify({ ...itinerary, stops }),
       });
       const data = await res.json();
-      const urlToCopy = data.short ?? window.location.href;
-      await navigator.clipboard.writeText(urlToCopy);
+      if (!data.id) throw new Error("No ID returned");
+      const shareUrl = `${window.location.origin}/i/${data.id}`;
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
@@ -199,7 +200,7 @@ function ItineraryContent() {
               disabled={isShortening}
               className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-70 text-white text-sm font-semibold px-3 py-1.5 rounded-xl transition-colors"
             >
-              {copied ? <><Check className="w-4 h-4" />Copied!</> : isShortening ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Shortening...</> : <><Share2 className="w-4 h-4" />Share</>}
+              {copied ? <><Check className="w-4 h-4" />Copied!</> : isShortening ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</> : <><Share2 className="w-4 h-4" />Share</>}
             </button>
           </div>
         </div>
