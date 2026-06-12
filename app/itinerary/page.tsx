@@ -111,20 +111,45 @@ function ItineraryContent() {
     if (!shareId) return;
     setIsCopyingImage(true);
     try {
-      const imgRes = await fetch(`/api/og?id=${shareId}`);
-      if (!imgRes.ok) throw new Error("Image generation failed");
-      const blob = await imgRes.blob();
+      const isTouch = navigator.maxTouchPoints > 1;
 
-      // Try clipboard first; fall back to download if not supported
-      try {
-        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      } catch {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "roam-itinerary.png";
-        a.click();
-        URL.revokeObjectURL(url);
+      if (isTouch && typeof navigator.share === "function") {
+        // Mobile: native share sheet is the most reliable way to get the image into WhatsApp/iMessage
+        const imgRes = await fetch(`/api/og?id=${shareId}`);
+        if (!imgRes.ok) throw new Error("Image generation failed");
+        const blob = await imgRes.blob();
+        const file = new File([blob], "roam-itinerary.png", { type: "image/png" });
+        await navigator.share({ files: [file], title: itinerary?.title ?? "Roam itinerary" });
+      } else {
+        // Desktop: pass the fetch Promise directly into ClipboardItem so the browser's
+        // gesture-based clipboard permission is claimed synchronously, then falls back to download.
+        let copied = false;
+        if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                "image/png": fetch(`/api/og?id=${shareId}`).then((r) => {
+                  if (!r.ok) throw new Error("og failed");
+                  return r.blob();
+                }),
+              }),
+            ]);
+            copied = true;
+          } catch (e) {
+            console.warn("Clipboard write failed, falling back to download:", e);
+          }
+        }
+        if (!copied) {
+          const imgRes = await fetch(`/api/og?id=${shareId}`);
+          if (!imgRes.ok) throw new Error("Image generation failed");
+          const blob = await imgRes.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "roam-itinerary.png";
+          a.click();
+          URL.revokeObjectURL(url);
+        }
       }
       setImageCopied(true);
       setTimeout(() => setImageCopied(false), 2500);
@@ -302,7 +327,7 @@ function ItineraryContent() {
                         ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating...</>
                         : imageCopied
                         ? <><Check className="w-4 h-4" />Image copied!</>
-                        : <><Image className="w-4 h-4" />Copy image</>}
+                        : <><Image className="w-4 h-4" />Copy image to clipboard</>}
                     </button>
                   </div>
                 </div>
