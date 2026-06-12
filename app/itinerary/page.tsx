@@ -116,20 +116,23 @@ function ItineraryContent() {
       const blob = await imgRes.blob();
       const file = new File([blob], "roam-itinerary.png", { type: "image/png" });
 
-      if (navigator.canShare?.({ files: [file] })) {
-        // Mobile: native share sheet
+      // Only use native share sheet on actual mobile devices
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile && navigator.canShare?.({ files: [file] })) {
+        // Mobile: native share sheet → send directly to iMessage, WhatsApp, etc.
         await navigator.share({
           files: [file],
           title: itinerary.title,
           url: `${window.location.origin}/i/${shareId}`,
         });
       } else {
-        // Desktop: try copy to clipboard, fall back to download
+        // Desktop: copy PNG to clipboard so user can paste into any app
         try {
           await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
           setImageCopied(true);
           setTimeout(() => setImageCopied(false), 2500);
         } catch {
+          // Last resort: download the file
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url; a.download = "roam-itinerary.png"; a.click();
